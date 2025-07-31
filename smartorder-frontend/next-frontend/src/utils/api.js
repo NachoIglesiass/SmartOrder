@@ -2,7 +2,7 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export const api = {
+const api = {
   get: (endpoint, options = {}) =>
     fetch(`${API_URL}${endpoint}`, {
       method: 'GET',
@@ -41,3 +41,5 @@ export const api = {
       ...options,
     }),
 };
+
+export default api;
