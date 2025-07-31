@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/solid';
+import api from '@/utils/api'; // 👈 nueva línea
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,25 +13,17 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-
-const handleLogin = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setErrorMessage('');
 
     try {
-      const res = await fetch('http://localhost:3001/api/users/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+      const res = await api.post('/users/login', {
+        username,
+        password
       });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        setErrorMessage(errorData.message || 'Credenciales inválidas');
-        return;
-      }
-
-      const data = await res.json();
+      const data = res.data;
 
       localStorage.setItem('token', data.token);
       localStorage.setItem('role', data.user.role);
@@ -55,16 +48,20 @@ const handleLogin = async (e) => {
         default:
           router.push('/login'); // fallback
       }
+
     } catch (err) {
-      setErrorMessage('Error de conexión. Intenta nuevamente.');
+      if (err.response && err.response.data?.message) {
+        setErrorMessage(err.response.data.message);
+      } else {
+        setErrorMessage('Error de conexión. Intenta nuevamente.');
+      }
     }
   };
-
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black to-gray-900 flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-[#111] text-white rounded-2xl shadow-lg p-8 space-y-6">
-        
+
         {/* Logo y título */}
         <div className="flex flex-col items-center">
           <Image
@@ -120,10 +117,10 @@ const handleLogin = async (e) => {
               )}
             </button>
           </div>
-          
-           {/* Mensaje de error aquí */}
+
+          {/* Mensaje de error */}
           {errorMessage && (
-          <p className="text-red-500 text-sm mt-1">{errorMessage}</p>
+            <p className="text-red-500 text-sm mt-1">{errorMessage}</p>
           )}
 
           {/* Botón iniciar sesión */}
