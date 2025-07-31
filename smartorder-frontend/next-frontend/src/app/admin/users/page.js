@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '@/utils/api'; // 👈 tu helper que usa process.env.NEXT_PUBLIC_API_URL
 import DropdownCustom from '@/components/DropdownCustom';
 
 export default function UsersAdminPage() {
@@ -12,7 +12,7 @@ export default function UsersAdminPage() {
   });
 
   const [formMessage, setFormMessage] = useState('');
-  const [formMessageType, setFormMessageType] = useState(''); // 'error' o 'success'
+  const [formMessageType, setFormMessageType] = useState('');
 
   const [editingUserId, setEditingUserId] = useState(null);
   const [editingUser, setEditingUser] = useState({
@@ -28,12 +28,13 @@ export default function UsersAdminPage() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:3001/api/users', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const res = await api.get('/users', {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      setUsers(res.data);
+
+      if (!res.ok) throw new Error('Error al obtener usuarios');
+      const data = await res.json();
+      setUsers(data);
     } catch (error) {
       console.error('Error fetching users:', error);
     }
@@ -43,25 +44,19 @@ export default function UsersAdminPage() {
     e.preventDefault();
 
     try {
-      const res = await axios.post(
-        'http://localhost:3001/api/users/register',
-        newUser,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
-      );
-      console.log('Usuario creado:', res.data);
+      const token = localStorage.getItem('token');
+      const res = await api.post('/users/register', newUser, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) throw new Error('Error al crear usuario');
+
       setNewUser({ username: '', password: '', role: '' });
       setFormMessageType('success');
       setFormMessage('Usuario creado correctamente.');
-
       fetchUsers();
 
-      setTimeout(() => {
-        setFormMessage('');
-      }, 3000);
+      setTimeout(() => setFormMessage(''), 3000);
     } catch (error) {
       console.error('Error creating user:', error);
       setFormMessageType('error');
@@ -73,11 +68,13 @@ export default function UsersAdminPage() {
     const confirmed = window.confirm('¿Estás seguro de que quieres eliminar este usuario?');
     if (!confirmed) return;
     try {
-      await axios.delete(`http://localhost:3001/api/users/${userId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
+      const token = localStorage.getItem('token');
+      const res = await api.delete(`/users/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
+
+      if (!res.ok) throw new Error('Error al eliminar usuario');
+
       fetchUsers();
     } catch (error) {
       console.error('Error deleting user:', error);
@@ -102,6 +99,7 @@ export default function UsersAdminPage() {
     e.preventDefault();
 
     try {
+      const token = localStorage.getItem('token');
       const dataToUpdate = {
         username: editingUser.username,
         role: editingUser.role,
@@ -110,11 +108,12 @@ export default function UsersAdminPage() {
         dataToUpdate.password = editingUser.password;
       }
 
-      await axios.put(`http://localhost:3001/api/users/${editingUserId}`, dataToUpdate, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
+      const res = await api.put(`/users/${editingUserId}`, dataToUpdate, {
+        headers: { Authorization: `Bearer ${token}` },
       });
+
+      if (!res.ok) throw new Error('Error al actualizar usuario');
+
       cancelEditing();
       fetchUsers();
       setFormMessage('');
@@ -168,10 +167,7 @@ export default function UsersAdminPage() {
             {formMessage}
           </p>
         )}
-        <button
-          type="submit"
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-        >
+        <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
           Crear Usuario
         </button>
       </form>
@@ -202,10 +198,7 @@ export default function UsersAdminPage() {
             className="bg-gray-700 text-white border border-gray-600 px-3 py-2 w-full rounded"
           />
           <div className="flex space-x-2">
-            <button
-              type="submit"
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-            >
+            <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
               Guardar
             </button>
             <button
@@ -254,3 +247,4 @@ export default function UsersAdminPage() {
     </div>
   );
 }
+
