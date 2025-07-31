@@ -15,10 +15,10 @@ connectDB();
 const app = express();
 
 // Middleware CORS
-const allowedOrigins = [
-  'http://localhost:3000',
-  process.env.FRONTEND_URL // esto tomará https://smartorderfrontend.vercel.app
-];
+const allowedOrigins = ['http://localhost:3000'];
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
 
 app.use(cors({
   origin: function (origin, callback) {
