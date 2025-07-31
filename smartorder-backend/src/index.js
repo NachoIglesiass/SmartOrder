@@ -20,9 +20,15 @@ const app = express();
 // Middleware para parsear JSON
 app.use(express.json());
 
-// Configuración CORS (local + producción)
-const allowedOrigins = ['http://localhost:3000'];
-if (process.env.FRONTEND_URL) {
+// CORS: Permitir localhost + Vercel fijo + subdominios temporales de Vercel
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://smartorder-frontend.vercel.app',
+  'https://smartorder-frontend-jjy7ozmus-smartorders-projects.vercel.app', // opcional si usás deploy previews
+];
+
+// Agregar desde variable FRONTEND_URL si no está incluida aún
+if (process.env.FRONTEND_URL && !allowedOrigins.includes(process.env.FRONTEND_URL)) {
   allowedOrigins.push(process.env.FRONTEND_URL);
 }
 
@@ -31,7 +37,7 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin)) {
       return callback(null, true);
     } else {
-      console.error(`Bloqueado por CORS: ${origin}`);
+      console.error(`❌ Bloqueado por CORS: ${origin}`);
       return callback(new Error('No permitido por CORS'));
     }
   },
@@ -52,5 +58,5 @@ app.use('/api/orders', orderRoutes);
 // Iniciar servidor
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`Servidor corriendo en puerto ${PORT}`);
+  console.log(`✅ Servidor corriendo en puerto ${PORT}`);
 });
