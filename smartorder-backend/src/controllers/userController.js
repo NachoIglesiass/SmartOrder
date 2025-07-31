@@ -29,6 +29,8 @@ const registerUser = async (req, res) => {
 
 // Login
 const loginUser = async (req, res) => {
+  console.log('🛂 Body recibido en login:', req.body); // 👈 Agregá esta línea
+
   const { username, password } = req.body;
 
   try {
@@ -37,15 +39,13 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ message: 'Credenciales invalidas' });
     }
 
-    // Verificar que process.env.JWT_SECRET esté correctamente cargado
-    // console.log('JWT Secret:', process.env.JWT_SECRET);  // Esto debe mostrar la clave secreta en consola
-
     const token = generateToken(user);
     res.json({ token, user: { id: user._id, username: user.username, role: user.role } });
   } catch (error) {
-    res.status(500).json({ message: 'Inicio de sesion fallido', error });
+    res.status(500).json({ message: 'Inicio de sesión fallido', error });
   }
 };
+
 
 const getUserProfile = (req, res) => {
     try {
