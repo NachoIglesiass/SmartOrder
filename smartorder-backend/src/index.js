@@ -24,7 +24,7 @@ app.use(express.json());
 const allowedOrigins = [
   'http://localhost:3000',
   'https://smartorder-frontend.vercel.app',
-  'https://smartorder-frontend-rbu5saevm-smartorders-projects.vercel.app'
+  'https://smartorder-frontend-3knlcv8iv-smartorders-projects.vercel.app'
 ];
 
 app.use(cors({
