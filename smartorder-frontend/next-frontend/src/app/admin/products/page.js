@@ -1,41 +1,25 @@
 'use client';
 import { useEffect, useState } from 'react';
-import api from '@/utils/api'; // 👈 usamos tu helper centralizado
+import api from '@/utils/api';
 import DropdownCustom from '@/components/DropdownCustom';
 
 export default function ProductsAdminPage() {
   const [products, setProducts] = useState([]);
   const [filterCategory, setFilterCategory] = useState('Todos');
   const [searchTerm, setSearchTerm] = useState('');
-  const [newProduct, setNewProduct] = useState({
-    name: '',
-    category: '',
-    price: '',
-  });
-
+  const [newProduct, setNewProduct] = useState({ name: '', category: '', price: '' });
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
-
   const [editProductId, setEditProductId] = useState(null);
-  const [editProductData, setEditProductData] = useState({
-    name: '',
-    category: '',
-    price: '',
-  });
+  const [editProductData, setEditProductData] = useState({ name: '', category: '', price: '' });
 
-  // Obtener productos
   const fetchProducts = async () => {
     try {
       const token = localStorage.getItem('token');
       const res = await api.get('/products', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (!res.ok) throw new Error('Error al obtener productos');
-      const data = await res.json();
-      setProducts(data);
+      setProducts(res.data);
     } catch (error) {
       console.error('Error fetching products:', error);
     }
@@ -49,26 +33,16 @@ export default function ProductsAdminPage() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const res = await api.post(
+      await api.post(
         '/products',
-        {
-          ...newProduct,
-          price: parseFloat(newProduct.price),
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { ...newProduct, price: parseFloat(newProduct.price) },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      if (!res.ok) throw new Error('Error al crear producto');
 
       setMessageType('success');
       setMessage('Producto creado correctamente.');
       setNewProduct({ name: '', category: '', price: '' });
       fetchProducts();
-
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       setMessageType('error');
@@ -80,11 +54,9 @@ export default function ProductsAdminPage() {
   const handleDeleteProduct = async (productId) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await api.delete(`/products/${productId}`, {
+      await api.delete(`/products/${productId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (!res.ok) throw new Error('Error al eliminar producto');
       fetchProducts();
     } catch (error) {
       console.error('Error eliminando producto:', error);
@@ -94,19 +66,11 @@ export default function ProductsAdminPage() {
   const saveEditProduct = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await api.put(
+      await api.put(
         `/products/${editProductId}`,
-        {
-          ...editProductData,
-          price: parseFloat(editProductData.price),
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { ...editProductData, price: parseFloat(editProductData.price) },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      if (!res.ok) throw new Error('Error al actualizar producto');
-
       setEditProductId(null);
       setEditProductData({ name: '', category: '', price: '' });
       fetchProducts();
@@ -134,7 +98,7 @@ export default function ProductsAdminPage() {
     <div className="p-6 bg-gray-900 text-white min-h-screen">
       <h1 className="text-2xl font-bold mb-4">Administrar Productos</h1>
 
-      {/* Formulario Crear */}
+      {/* Crear Producto */}
       <form onSubmit={handleCreateProduct} className="mb-6 space-y-4 bg-gray-800 p-4 rounded">
         <h3 className="text-lg font-semibold mb-2 text-white">Crear Producto</h3>
         <input
@@ -179,7 +143,7 @@ export default function ProductsAdminPage() {
         )}
       </form>
 
-      {/* Formulario Editar */}
+      {/* Editar Producto */}
       {editProductId && (
         <form
           onSubmit={(e) => {
