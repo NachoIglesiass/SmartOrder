@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "@/utils/api"; // ✅ Cambio aquí
 
 const badgeColor = (estado) => {
   switch (estado) {
@@ -19,18 +19,14 @@ export default function CajaBoxPage() {
   const [modalVisible, setModalVisible] = useState(false);
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
 
-  // Carga pedidos SOLO a cobrar, pagados o cerrados
   const fetchPedidos = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:3001/api/orders", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await api.get("/orders", {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
-      // FILTRA solo los pedidos en estado "a cobrar", "pagado" o "cerrado"
       let pedidosFiltrados = response.data.filter(
         (pedido) =>
           pedido.status === "a cobrar" ||
@@ -38,7 +34,6 @@ export default function CajaBoxPage() {
           pedido.status === "cerrado"
       );
 
-      // ORDENAR: primero "a cobrar", luego "pagado", luego "cerrado"
       pedidosFiltrados = pedidosFiltrados.sort((a, b) => {
         const orden = { "a cobrar": 1, "pagado": 2, "cerrado": 3 };
         return (orden[a.status] || 4) - (orden[b.status] || 4);
@@ -74,15 +69,13 @@ export default function CajaBoxPage() {
   const marcarComoPagado = async (id) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.patch(
-        `http://localhost:3001/api/orders/${id}/status`,
+      await api.patch(
+        `/orders/${id}/status`,
         { status: "pagado" },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setPedidos((prev) =>
-        prev.map((p) =>
-          p.id === id ? { ...p, estado: "pagado" } : p
-        )
+        prev.map((p) => (p.id === id ? { ...p, estado: "pagado" } : p))
       );
       setModalVisible(false);
       setPedidoSeleccionado(null);
@@ -95,15 +88,13 @@ export default function CajaBoxPage() {
   const deshacerPago = async (id) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.patch(
-        `http://localhost:3001/api/orders/${id}/status`,
+      await api.patch(
+        `/orders/${id}/status`,
         { status: "a cobrar" },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setPedidos((prev) =>
-        prev.map((p) =>
-          p.id === id ? { ...p, estado: "a cobrar" } : p
-        )
+        prev.map((p) => (p.id === id ? { ...p, estado: "a cobrar" } : p))
       );
       alert("Pago deshecho correctamente");
     } catch (error) {
@@ -115,13 +106,15 @@ export default function CajaBoxPage() {
   const mozosUnicos = [...new Set(pedidos.map((p) => p.mozo))];
 
   const pedidosFiltrados = pedidos.filter((pedido) => {
-    const mesaCoincide = mesaBuscada === "" || pedido.mesa?.nombre?.toLowerCase().includes(mesaBuscada.toLowerCase());
-    const mozoCoincide = mozoSeleccionado === "" || pedido.mozo === mozoSeleccionado;
+    const mesaCoincide =
+      mesaBuscada === "" || pedido.mesa?.nombre?.toLowerCase().includes(mesaBuscada.toLowerCase());
+    const mozoCoincide =
+      mozoSeleccionado === "" || pedido.mozo === mozoSeleccionado;
     return mesaCoincide && mozoCoincide;
   });
 
   if (loading) return <p className="text-white">Cargando pedidos...</p>;
-
+  
   return (
     <>
       <div className="flex flex-row gap-6 w-full">
