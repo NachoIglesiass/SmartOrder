@@ -3,250 +3,219 @@ import { useEffect, useState } from 'react';
 import api from '@/utils/api';
 import DropdownCustom from '@/components/DropdownCustom';
 
-export default function ProductsAdminPage() {
-  const [products, setProducts] = useState([]);
-  const [filterCategory, setFilterCategory] = useState('Todos');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [newProduct, setNewProduct] = useState({ name: '', category: '', price: '' });
-  const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState('');
-  const [editProductId, setEditProductId] = useState(null);
-  const [editProductData, setEditProductData] = useState({ name: '', category: '', price: '' });
+export default function UsersAdminPage() {
+  const [users, setUsers] = useState([]);
+  const [newUser, setNewUser] = useState({ username: '', password: '', role: '' });
+  const [formMessage, setFormMessage] = useState('');
+  const [formMessageType, setFormMessageType] = useState('');
+  const [editingUserId, setEditingUserId] = useState(null);
+  const [editingUser, setEditingUser] = useState({ username: '', role: '', password: '' });
 
-  const fetchProducts = async () => {
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await api.get('/products', {
+      const res = await api.get('/users', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setProducts(res.data);
+      setUsers(res.data);
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error('Error fetching users:', error);
     }
   };
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const handleCreateProduct = async (e) => {
+  const handleCreateUser = async (e) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      await api.post(
-        '/products',
-        { ...newProduct, price: parseFloat(newProduct.price) },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      setMessageType('success');
-      setMessage('Producto creado correctamente.');
-      setNewProduct({ name: '', category: '', price: '' });
-      fetchProducts();
-      setTimeout(() => setMessage(''), 3000);
-    } catch (error) {
-      setMessageType('error');
-      setMessage('Error creando producto. Intenta nuevamente.');
-      console.error(error);
-    }
-  };
-
-  const handleDeleteProduct = async (productId) => {
-    try {
-      const token = localStorage.getItem('token');
-      await api.delete(`/products/${productId}`, {
+      await api.post('/users/register', newUser, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      fetchProducts();
+      setNewUser({ username: '', password: '', role: '' });
+      setFormMessageType('success');
+      setFormMessage('Usuario creado correctamente.');
+      fetchUsers();
+      setTimeout(() => setFormMessage(''), 3000);
     } catch (error) {
-      console.error('Error eliminando producto:', error);
+      console.error('Error creating user:', error);
+      setFormMessageType('error');
+      setFormMessage('Error al crear el usuario.');
     }
   };
 
-  const saveEditProduct = async () => {
+  const handleDeleteUser = async (userId) => {
+    const confirmed = window.confirm('¿Estás seguro de que quieres eliminar este usuario?');
+    if (!confirmed) return;
     try {
       const token = localStorage.getItem('token');
-      await api.put(
-        `/products/${editProductId}`,
-        { ...editProductData, price: parseFloat(editProductData.price) },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setEditProductId(null);
-      setEditProductData({ name: '', category: '', price: '' });
-      fetchProducts();
+      await api.delete(`/users/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchUsers();
     } catch (error) {
-      console.error('Error actualizando producto:', error);
+      console.error('Error deleting user:', error);
     }
   };
 
-  const startEditing = (product) => {
-    setEditProductId(product._id);
-    setEditProductData({
-      name: product.name,
-      category: product.category,
-      price: product.price.toString(),
-    });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const startEditingUser = (user) => {
+    setEditingUserId(user._id);
+    setEditingUser({ username: user.username, role: user.role, password: '' });
   };
 
   const cancelEditing = () => {
-    setEditProductId(null);
-    setEditProductData({ name: '', category: '', price: '' });
+    setEditingUserId(null);
+    setEditingUser({ username: '', role: '', password: '' });
   };
 
-  return (
-    <div className="p-6 bg-gray-900 text-white min-h-screen">
-      <h1 className="text-2xl font-bold mb-4">Administrar Productos</h1>
+  const handleUpdateUser = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const dataToUpdate = {
+        username: editingUser.username,
+        role: editingUser.role,
+      };
+      if (editingUser.password.trim() !== '') {
+        dataToUpdate.password = editingUser.password;
+      }
 
-      {/* Crear Producto */}
-      <form onSubmit={handleCreateProduct} className="mb-6 space-y-4 bg-gray-800 p-4 rounded">
-        <h3 className="text-lg font-semibold mb-2 text-white">Crear Producto</h3>
+      await api.put(`/users/${editingUserId}`, dataToUpdate, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      cancelEditing();
+      fetchUsers();
+      setFormMessage('');
+    } catch (error) {
+      console.error('Error updating user:', error);
+      setFormMessageType('error');
+      setFormMessage('Error al actualizar el usuario.');
+    }
+  };
+
+  const roleOptions = [
+    { label: 'Mozo', value: 'waiter' },
+    { label: 'Cocina', value: 'kitchen' },
+    { label: 'Barra', value: 'bar' },
+    { label: 'Caja', value: 'cashier' },
+    { label: 'Admin', value: 'admin' },
+  ];
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4 text-white">Administrar Usuarios</h1>
+
+      {/* Crear Usuario */}
+      <form onSubmit={handleCreateUser} className="mb-6 space-y-4 p-4 rounded bg-gray-800">
+        <h3 className="text-lg font-semibold mb-2 text-white">Crear Usuario</h3>
+
         <input
           type="text"
-          placeholder="Nombre del producto"
-          value={newProduct.name}
-          onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-          className="border border-gray-700 bg-gray-700 text-white px-3 py-2 w-full rounded"
+          placeholder="Nombre de usuario"
+          value={newUser.username}
+          onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
           required
+          className="bg-gray-700 text-white border border-gray-600 px-3 py-2 w-full rounded"
         />
-
-        <DropdownCustom
-          options={[
-            { value: '', label: 'Seleccionar categoría' },
-            { value: 'Comida', label: 'Comida' },
-            { value: 'Bebida', label: 'Bebida' },
-          ]}
-          value={newProduct.category}
-          onChange={(val) => setNewProduct({ ...newProduct, category: val })}
-          required
-        />
-
         <input
-          type="number"
-          step="0.01"
-          placeholder="Precio"
-          value={newProduct.price}
-          onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
-          className="border border-gray-700 bg-gray-700 text-white px-3 py-2 w-full rounded"
+          type="text"
+          placeholder="Contraseña"
+          value={newUser.password}
+          onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
           required
-          min="0.01"
+          className="bg-gray-700 text-white border border-gray-600 px-3 py-2 w-full rounded"
         />
-
-        <button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
-          Crear Producto
-        </button>
-
-        {message && (
-          <p className={`mt-2 font-semibold ${messageType === 'error' ? 'text-red-500' : 'text-green-500'}`}>
-            {message}
+        <DropdownCustom
+          options={roleOptions}
+          value={newUser.role}
+          onChange={(value) => setNewUser({ ...newUser, role: value })}
+          placeholder="Seleccionar rol"
+          required
+        />
+        {formMessage && (
+          <p className={formMessageType === 'error' ? 'text-red-400' : 'text-green-400'}>
+            {formMessage}
           </p>
         )}
+        <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+          Crear Usuario
+        </button>
       </form>
 
-      {/* Editar Producto */}
-      {editProductId && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            saveEditProduct();
-          }}
-          className="mb-6 bg-gray-800 p-4 rounded space-y-4"
-        >
-          <h2 className="text-xl font-semibold">Editar Producto</h2>
+      {/* Editar Usuario */}
+      {editingUserId && (
+        <form onSubmit={handleUpdateUser} className="mb-6 space-y-4 p-4 rounded bg-gray-800">
+          <h3 className="text-lg font-semibold mb-2 text-white">Editar usuario</h3>
           <input
             type="text"
-            value={editProductData.name}
-            onChange={(e) => setEditProductData({ ...editProductData, name: e.target.value })}
-            className="border border-gray-700 bg-gray-700 text-white px-3 py-2 w-full rounded"
+            placeholder="Nombre de usuario"
+            value={editingUser.username}
+            onChange={(e) => setEditingUser({ ...editingUser, username: e.target.value })}
+            required
+            className="bg-gray-700 text-white border border-gray-600 px-3 py-2 w-full rounded"
+          />
+          <DropdownCustom
+            options={roleOptions}
+            value={editingUser.role}
+            onChange={(value) => setEditingUser({ ...editingUser, role: value })}
+            placeholder="Seleccionar rol"
             required
           />
-          <select
-            value={editProductData.category}
-            onChange={(e) => setEditProductData({ ...editProductData, category: e.target.value })}
-            className="border border-gray-700 bg-gray-700 text-white px-3 py-2 w-full rounded"
-            required
-          >
-            <option value="">Seleccionar categoría</option>
-            <option value="Comida">Comida</option>
-            <option value="Bebida">Bebida</option>
-          </select>
           <input
-            type="number"
-            step="0.01"
-            value={editProductData.price}
-            onChange={(e) => setEditProductData({ ...editProductData, price: e.target.value })}
-            className="border border-gray-700 bg-gray-700 text-white px-3 py-2 w-full rounded"
-            required
-            min="0.01"
+            type="text"
+            placeholder="Nueva contraseña (dejar vacío para no cambiar)"
+            value={editingUser.password}
+            onChange={(e) => setEditingUser({ ...editingUser, password: e.target.value })}
+            className="bg-gray-700 text-white border border-gray-600 px-3 py-2 w-full rounded"
           />
-
-          <div className="flex gap-2">
-            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+          <div className="flex space-x-2">
+            <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
               Guardar
             </button>
-            <button type="button" onClick={cancelEditing} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">
+            <button
+              type="button"
+              onClick={cancelEditing}
+              className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-700"
+            >
               Cancelar
             </button>
           </div>
+          {formMessage && (
+            <p className={formMessageType === 'error' ? 'text-red-400' : 'text-green-400'}>
+              {formMessage}
+            </p>
+          )}
         </form>
       )}
 
-      {/* Filtros */}
-      <div className="flex items-center gap-4 mb-4">
-        <DropdownCustom
-          options={[
-            { value: 'Todos', label: 'Todos' },
-            { value: 'Comida', label: 'Comida' },
-            { value: 'Bebida', label: 'Bebida' },
-          ]}
-          value={filterCategory}
-          onChange={setFilterCategory}
-        />
-
-        <input
-          type="text"
-          placeholder="Buscar por nombre..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="border border-gray-700 bg-gray-700 text-white px-3 py-2 rounded w-full"
-        />
-      </div>
-
-      {/* Lista */}
-      <h2 className="text-xl font-semibold mb-2">Productos existentes:</h2>
+      {/* Lista de usuarios */}
+      <h2 className="text-xl font-semibold mb-2 text-white">Usuarios existentes:</h2>
       <ul className="space-y-2">
-        {products
-          .filter((p) => filterCategory === 'Todos' || p.category === filterCategory)
-          .filter((p) => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
-          .map((product) => (
-            <li
-              key={product._id}
-              className="flex justify-between items-center border bg-gray-700 border-gray-700 px-4 py-2 rounded"
-            >
-              <div>
-                <span>{product.name} - ${product.price}</span>
-                <small className="text-gray-400 ml-2 text-xs">{product.category}</small>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => startEditing(product)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
-                >
-                  Editar
-                </button>
-                <button
-                  onClick={() => {
-                    if (window.confirm(`¿Estás seguro de eliminar "${product.name}"?`)) {
-                      handleDeleteProduct(product._id);
-                    }
-                  }}
-                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
-                >
-                  Eliminar
-                </button>
-              </div>
-            </li>
-          ))}
+        {users.map((user) => (
+          <li
+            key={user._id}
+            className="flex justify-between items-center bg-gray-700 px-4 py-2 rounded text-white"
+          >
+            <span>{user.username} - {user.role}</span>
+            <div>
+              <button
+                onClick={() => startEditingUser(user)}
+                className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 mr-2"
+              >
+                Editar
+              </button>
+              <button
+                onClick={() => handleDeleteUser(user._id)}
+                className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+              >
+                Eliminar
+              </button>
+            </div>
+          </li>
+        ))}
       </ul>
     </div>
   );
