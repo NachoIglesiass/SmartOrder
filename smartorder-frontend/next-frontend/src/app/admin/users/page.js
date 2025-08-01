@@ -13,6 +13,7 @@ export default function UsersAdminPage() {
 
   const [formMessage, setFormMessage] = useState('');
   const [formMessageType, setFormMessageType] = useState('');
+
   const [editingUserId, setEditingUserId] = useState(null);
   const [editingUser, setEditingUser] = useState({
     username: '',
@@ -30,7 +31,7 @@ export default function UsersAdminPage() {
       const res = await api.get('/users', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setUsers(res.data); // ✅ axios: respuesta viene en .data
+      setUsers(res.data);
     } catch (error) {
       console.error('Error fetching users:', error);
     }
@@ -56,8 +57,7 @@ export default function UsersAdminPage() {
   };
 
   const handleDeleteUser = async (userId) => {
-    const confirmed = window.confirm('¿Estás seguro de que quieres eliminar este usuario?');
-    if (!confirmed) return;
+    if (!window.confirm('¿Estás seguro de que quieres eliminar este usuario?')) return;
     try {
       const token = localStorage.getItem('token');
       await api.delete(`/users/${userId}`, {
@@ -98,7 +98,6 @@ export default function UsersAdminPage() {
       await api.put(`/users/${editingUserId}`, dataToUpdate, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       cancelEditing();
       fetchUsers();
       setFormMessage('');
@@ -195,6 +194,11 @@ export default function UsersAdminPage() {
               Cancelar
             </button>
           </div>
+          {formMessage && (
+            <p className={formMessageType === 'error' ? 'text-red-400' : 'text-green-400'}>
+              {formMessage}
+            </p>
+          )}
         </form>
       )}
 
