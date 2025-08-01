@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "@/utils/api";
 
 export default function MozoMesaSelector({
   mesas,
@@ -13,10 +13,9 @@ export default function MozoMesaSelector({
   const [mensaje, setMensaje] = useState("");
 
   useEffect(() => {
-    // Ahora también considera 'a cobrar' y 'pagado' como mesas ocupadas
     const token = localStorage.getItem("token");
-    axios
-      .get("http://localhost:3001/api/orders", {
+    api
+      .get("/orders", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
