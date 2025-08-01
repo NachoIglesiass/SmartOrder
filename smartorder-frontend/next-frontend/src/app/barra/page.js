@@ -1,17 +1,12 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/utils/api"; // ✅ Reemplaza axios
 
-// Calcular estado visual del pedido SOLO con items de barra
 const calcularEstadoVisual = (items) => {
   const estados = items.map(item => normalizarEstado(item.status));
-  // Todos pendientes
   if (estados.length && estados.every(st => st === "pendiente")) return "pendiente";
-  // Todos en preparación
   if (estados.length && estados.every(st => st === "en preparación")) return "en preparación";
-  // Todos listos o en mesa
   if (estados.length && estados.every(st => st === "listo" || st === "en mesa")) return "listo";
-  // Mezcla: mostrar el de menor prioridad
   if (estados.includes("pendiente")) return "pendiente";
   if (estados.includes("en preparación")) return "en preparación";
   return "listo";
@@ -26,7 +21,6 @@ const colorVisual = (estado) => {
   }
 };
 
-// Normaliza errores de tilde o falta de espacio
 const normalizarEstado = (estado) => {
   if (!estado) return "";
   if (estado === "en preparacion") return "en preparación";
@@ -51,7 +45,7 @@ export default function BarraPage() {
   const fetchPedidos = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:3001/api/orders/sector/barra", {
+      const response = await api.get("/orders/sector/barra", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -80,10 +74,9 @@ export default function BarraPage() {
   const cambiarEstado = async (pedidoId, itemId, nuevoEstado) => {
     try {
       const token = localStorage.getItem("token");
-      // Normalizar antes de enviar
       const estadoFinal = normalizarEstado(nuevoEstado);
-      await axios.patch(
-        `http://localhost:3001/api/orders/${pedidoId}/item/${itemId}/status`,
+      await api.patch(
+        `/orders/${pedidoId}/item/${itemId}/status`,
         { status: estadoFinal },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -107,7 +100,6 @@ export default function BarraPage() {
     window.location.href = "/login";
   };
 
-  // Ordenar: pendiente > en preparación > listo (por estado visual)
   const pedidosOrdenados = [...pedidos].sort((a, b) => {
     const estA = calcularEstadoVisual(a.items);
     const estB = calcularEstadoVisual(b.items);
@@ -115,7 +107,6 @@ export default function BarraPage() {
     return (orden[estA] ?? 9) - (orden[estB] ?? 9);
   });
 
-  // GRID
   const GRID_ROWS = 2;
   const GRID_COLS = 3;
   const BLOQUE_W = 600;
