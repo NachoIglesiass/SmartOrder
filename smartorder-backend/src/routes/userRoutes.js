@@ -4,7 +4,8 @@ const { registerUser, loginUser, getUserProfile, getAllUsers, updateUser, delete
 const { protect, authorizeRoles } = require('../middleware/authMiddleware');
 
 // Registro y Login
-router.post('/register', registerUser); // 🔓 TEMPORALMENTE ABIERTO
+// Rutas protegidas nuevamente:
+router.post('/register', protect, authorizeRoles('admin'), registerUser);
 router.post('/login', loginUser);
 
 // Ruta protegida - Perfil del usuario logueado
