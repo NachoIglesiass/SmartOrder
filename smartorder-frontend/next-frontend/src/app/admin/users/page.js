@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import api from '@/utils/api'; // 👈 tu helper que usa process.env.NEXT_PUBLIC_API_URL
+import api from '@/utils/api';
 import DropdownCustom from '@/components/DropdownCustom';
 
 export default function UsersAdminPage() {
@@ -13,7 +13,6 @@ export default function UsersAdminPage() {
 
   const [formMessage, setFormMessage] = useState('');
   const [formMessageType, setFormMessageType] = useState('');
-
   const [editingUserId, setEditingUserId] = useState(null);
   const [editingUser, setEditingUser] = useState({
     username: '',
@@ -31,10 +30,7 @@ export default function UsersAdminPage() {
       const res = await api.get('/users', {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (!res.ok) throw new Error('Error al obtener usuarios');
-      const data = await res.json();
-      setUsers(data);
+      setUsers(res.data); // ✅ axios: respuesta viene en .data
     } catch (error) {
       console.error('Error fetching users:', error);
     }
@@ -42,20 +38,15 @@ export default function UsersAdminPage() {
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
-
     try {
       const token = localStorage.getItem('token');
-      const res = await api.post('/users/register', newUser, {
+      await api.post('/users/register', newUser, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (!res.ok) throw new Error('Error al crear usuario');
-
       setNewUser({ username: '', password: '', role: '' });
       setFormMessageType('success');
       setFormMessage('Usuario creado correctamente.');
       fetchUsers();
-
       setTimeout(() => setFormMessage(''), 3000);
     } catch (error) {
       console.error('Error creating user:', error);
@@ -69,12 +60,9 @@ export default function UsersAdminPage() {
     if (!confirmed) return;
     try {
       const token = localStorage.getItem('token');
-      const res = await api.delete(`/users/${userId}`, {
+      await api.delete(`/users/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (!res.ok) throw new Error('Error al eliminar usuario');
-
       fetchUsers();
     } catch (error) {
       console.error('Error deleting user:', error);
@@ -97,7 +85,6 @@ export default function UsersAdminPage() {
 
   const handleUpdateUser = async (e) => {
     e.preventDefault();
-
     try {
       const token = localStorage.getItem('token');
       const dataToUpdate = {
@@ -108,11 +95,9 @@ export default function UsersAdminPage() {
         dataToUpdate.password = editingUser.password;
       }
 
-      const res = await api.put(`/users/${editingUserId}`, dataToUpdate, {
+      await api.put(`/users/${editingUserId}`, dataToUpdate, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (!res.ok) throw new Error('Error al actualizar usuario');
 
       cancelEditing();
       fetchUsers();
@@ -136,9 +121,9 @@ export default function UsersAdminPage() {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4 text-white">Administrar Usuarios</h1>
 
+      {/* Crear Usuario */}
       <form onSubmit={handleCreateUser} className="mb-6 space-y-4 p-4 rounded bg-gray-800">
         <h3 className="text-lg font-semibold mb-2 text-white">Crear Usuario</h3>
-
         <input
           type="text"
           placeholder="Nombre de usuario"
@@ -172,6 +157,7 @@ export default function UsersAdminPage() {
         </button>
       </form>
 
+      {/* Editar Usuario */}
       {editingUserId && (
         <form onSubmit={handleUpdateUser} className="mb-6 space-y-4 p-4 rounded bg-gray-800">
           <h3 className="text-lg font-semibold mb-2 text-white">Editar usuario</h3>
@@ -209,14 +195,10 @@ export default function UsersAdminPage() {
               Cancelar
             </button>
           </div>
-          {formMessage && (
-            <p className={formMessageType === 'error' ? 'text-red-400' : 'text-green-400'}>
-              {formMessage}
-            </p>
-          )}
         </form>
       )}
 
+      {/* Lista de usuarios */}
       <h2 className="text-xl font-semibold mb-2 text-white">Usuarios existentes:</h2>
       <ul className="space-y-2">
         {users.map((user) => (
@@ -224,9 +206,7 @@ export default function UsersAdminPage() {
             key={user._id}
             className="flex justify-between items-center bg-gray-700 px-4 py-2 rounded text-white"
           >
-            <span>
-              {user.username} - {user.role}
-            </span>
+            <span>{user.username} - {user.role}</span>
             <div>
               <button
                 onClick={() => startEditingUser(user)}
@@ -247,4 +227,3 @@ export default function UsersAdminPage() {
     </div>
   );
 }
-
