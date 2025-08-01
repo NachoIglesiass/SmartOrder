@@ -1,31 +1,24 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/utils/api"; // ✅ Usamos api centralizado
 
-// Función para normalizar estado por si llega distinto (opcional)
 const normalizarEstado = (estado) =>
   estado?.toLowerCase().replace("í", "i").replace("ó", "o");
 
-// Calcula el color del bloque según los items
 const calcularEstadoVisual = (items) => {
   const estados = items.map(item => normalizarEstado(item.status));
-  // Todos pendientes
   if (estados.length && estados.every(st => st === "pendiente")) return "pendiente";
-  // Todos en preparación
   if (estados.length && estados.every(st => st === "en preparacion" || st === "en preparación")) return "en preparación";
-  // Todos listos (o en mesa)
   if (estados.length && estados.every(st => st === "listo" || st === "en mesa")) return "listo";
-  // Mezcla: menor prioridad
   if (estados.includes("pendiente")) return "pendiente";
   if (estados.includes("en preparacion") || estados.includes("en preparación")) return "en preparación";
   return "listo";
 };
 
-// Colores visuales según estado general
 const estadoPedidoColor = (estado) => {
   switch (estado) {
     case "pendiente": return "border-l-8 border-orange-500";
-    case "en preparación": return "border-l-8 border-blue-700";
+    case "en preparación":
     case "en preparacion": return "border-l-8 border-blue-700";
     case "listo": return "border-l-8 border-green-600";
     default: return "border-l-8 border-gray-600";
@@ -49,14 +42,17 @@ export default function CocinaPage() {
   const fetchPedidos = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:3001/api/orders/sector/cocina", {
+      const response = await api.get("/orders/sector/cocina", {
         headers: { Authorization: `Bearer ${token}` },
       });
       const pedidosFormateados = response.data.map((pedido) => ({
         id: pedido._id,
         mesa: pedido.mesa?.nombre || "Desconocida",
         mozo: pedido.user?.username || "Mozo desconocido",
-        hora: new Date(pedido.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        hora: new Date(pedido.createdAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
         notas: pedido.notes || "",
         items: pedido.items,
         status: pedido.status,
@@ -70,8 +66,8 @@ export default function CocinaPage() {
   const cambiarEstado = async (pedidoId, itemId, nuevoEstado) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.patch(
-        `http://localhost:3001/api/orders/${pedidoId}/item/${itemId}/status`,
+      await api.patch(
+        `/orders/${pedidoId}/item/${itemId}/status`,
         { status: nuevoEstado },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -95,20 +91,22 @@ export default function CocinaPage() {
     window.location.href = "/login";
   };
 
-  // Ordenar pedidos: pendiente > en preparación > listo
   const pedidosOrdenados = [...pedidos].sort((a, b) => {
-    // Ordenar usando el estado visual calculado
-    const orden = { "pendiente": 0, "en preparación": 1, "en preparacion": 1, "listo": 2 };
+    const orden = {
+      "pendiente": 0,
+      "en preparación": 1,
+      "en preparacion": 1,
+      "listo": 2,
+    };
     const estadoA = calcularEstadoVisual(a.items);
     const estadoB = calcularEstadoVisual(b.items);
     return (orden[estadoA] ?? 9) - (orden[estadoB] ?? 9);
   });
 
-  // --- GRID: 2 filas x 3 columnas = 6 pedidos por pantalla 1920x1080 ---
   const GRID_ROWS = 2;
   const GRID_COLS = 3;
-  const BLOQUE_W = 600; // px
-  const BLOQUE_H = 440; // px
+  const BLOQUE_W = 600;
+  const BLOQUE_H = 440;
 
   const pedidosAMostrar = pedidosOrdenados.slice(0, GRID_ROWS * GRID_COLS);
 
