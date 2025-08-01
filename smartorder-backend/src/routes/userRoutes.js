@@ -5,7 +5,7 @@ const { protect, authorizeRoles } = require('../middleware/authMiddleware');
 
 // Registro y Login
 // Rutas protegidas nuevamente:
-router.post('/register', registerUser);
+router.post('/register', protect, authorizeRoles('admin'), registerUser);
 router.post('/login', loginUser);
 
 // Ruta protegida - Perfil del usuario logueado
