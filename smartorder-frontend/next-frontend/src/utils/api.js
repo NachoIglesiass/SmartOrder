@@ -1,45 +1,9 @@
 // src/utils/api.js
+import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-const api = {
-  get: (endpoint, options = {}) =>
-    fetch(`${API_URL}${endpoint}`, {
-      method: 'GET',
-      credentials: 'include',
-      ...options,
-    }),
-
-  post: (endpoint, body, options = {}) =>
-    fetch(`${API_URL}${endpoint}`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(options.headers || {}),
-      },
-      body: JSON.stringify(body),
-      ...options,
-    }),
-
-  put: (endpoint, body, options = {}) =>
-    fetch(`${API_URL}${endpoint}`, {
-      method: 'PUT',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(options.headers || {}),
-      },
-      body: JSON.stringify(body),
-      ...options,
-    }),
-
-  delete: (endpoint, options = {}) =>
-    fetch(`${API_URL}${endpoint}`, {
-      method: 'DELETE',
-      credentials: 'include',
-      ...options,
-    }),
-};
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL, // Asegurate de tener esta variable en tu .env
+  withCredentials: true,
+});
 
 export default api;
