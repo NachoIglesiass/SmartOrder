@@ -3,137 +3,129 @@ import { useEffect, useState } from 'react';
 import api from '@/utils/api';
 import DropdownCustom from '@/components/DropdownCustom';
 
-export default function UsersAdminPage() {
-  const [users, setUsers] = useState([]);
-  const [newUser, setNewUser] = useState({ username: '', password: '', role: '' });
+export default function ProductsAdminPage() {
+  const [products, setProducts] = useState([]);
+  const [newProduct, setNewProduct] = useState({ name: '', category: '', price: '' });
   const [formMessage, setFormMessage] = useState('');
   const [formMessageType, setFormMessageType] = useState('');
-  const [editingUserId, setEditingUserId] = useState(null);
-  const [editingUser, setEditingUser] = useState({ username: '', role: '', password: '' });
+  const [editingProductId, setEditingProductId] = useState(null);
+  const [editingProduct, setEditingProduct] = useState({ name: '', category: '', price: '' });
 
   useEffect(() => {
-    fetchUsers();
+    fetchProducts();
   }, []);
 
-  const fetchUsers = async () => {
+  const fetchProducts = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await api.get('/users', {
+      const res = await api.get('/products', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setUsers(res.data);
+      setProducts(res.data);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('Error fetching products:', error);
     }
   };
 
-  const handleCreateUser = async (e) => {
+  const handleCreateProduct = async (e) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      await api.post('/users/register', newUser, {
+      await api.post('/products', {
+        ...newProduct,
+        price: parseFloat(newProduct.price),
+      }, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setNewUser({ username: '', password: '', role: '' });
+      setNewProduct({ name: '', category: '', price: '' });
       setFormMessageType('success');
-      setFormMessage('Usuario creado correctamente.');
-      fetchUsers();
+      setFormMessage('Producto creado correctamente.');
+      fetchProducts();
       setTimeout(() => setFormMessage(''), 3000);
     } catch (error) {
-      console.error('Error creating user:', error);
+      console.error('Error creating product:', error);
       setFormMessageType('error');
-      setFormMessage('Error al crear el usuario.');
+      setFormMessage('Error al crear el producto.');
     }
   };
 
-  const handleDeleteUser = async (userId) => {
-    const confirmed = window.confirm('¿Estás seguro de que quieres eliminar este usuario?');
+  const handleDeleteProduct = async (productId) => {
+    const confirmed = window.confirm('¿Estás seguro de eliminar este producto?');
     if (!confirmed) return;
     try {
       const token = localStorage.getItem('token');
-      await api.delete(`/users/${userId}`, {
+      await api.delete(`/products/${productId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      fetchUsers();
+      fetchProducts();
     } catch (error) {
-      console.error('Error deleting user:', error);
+      console.error('Error deleting product:', error);
     }
   };
 
-  const startEditingUser = (user) => {
-    setEditingUserId(user._id);
-    setEditingUser({ username: user.username, role: user.role, password: '' });
+  const startEditingProduct = (product) => {
+    setEditingProductId(product._id);
+    setEditingProduct({ name: product.name, category: product.category, price: product.price.toString() });
   };
 
   const cancelEditing = () => {
-    setEditingUserId(null);
-    setEditingUser({ username: '', role: '', password: '' });
+    setEditingProductId(null);
+    setEditingProduct({ name: '', category: '', price: '' });
   };
 
-  const handleUpdateUser = async (e) => {
+  const handleUpdateProduct = async (e) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const dataToUpdate = {
-        username: editingUser.username,
-        role: editingUser.role,
-      };
-      if (editingUser.password.trim() !== '') {
-        dataToUpdate.password = editingUser.password;
-      }
-
-      await api.put(`/users/${editingUserId}`, dataToUpdate, {
+      await api.put(`/products/${editingProductId}`, {
+        ...editingProduct,
+        price: parseFloat(editingProduct.price),
+      }, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       cancelEditing();
-      fetchUsers();
-      setFormMessage('');
+      fetchProducts();
     } catch (error) {
-      console.error('Error updating user:', error);
+      console.error('Error updating product:', error);
       setFormMessageType('error');
-      setFormMessage('Error al actualizar el usuario.');
+      setFormMessage('Error al actualizar el producto.');
     }
   };
 
-  const roleOptions = [
-    { label: 'Mozo', value: 'waiter' },
-    { label: 'Cocina', value: 'kitchen' },
-    { label: 'Barra', value: 'bar' },
-    { label: 'Caja', value: 'cashier' },
-    { label: 'Admin', value: 'admin' },
-  ];
-
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4 text-white">Administrar Usuarios</h1>
+      <h1 className="text-2xl font-bold mb-4 text-white">Administrar Productos</h1>
 
-      {/* Crear Usuario */}
-      <form onSubmit={handleCreateUser} className="mb-6 space-y-4 p-4 rounded bg-gray-800">
-        <h3 className="text-lg font-semibold mb-2 text-white">Crear Usuario</h3>
+      {/* Crear Producto */}
+      <form onSubmit={handleCreateProduct} className="mb-6 space-y-4 p-4 rounded bg-gray-800">
+        <h3 className="text-lg font-semibold mb-2 text-white">Crear Producto</h3>
 
         <input
           type="text"
-          placeholder="Nombre de usuario"
-          value={newUser.username}
-          onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-          required
-          className="bg-gray-700 text-white border border-gray-600 px-3 py-2 w-full rounded"
-        />
-        <input
-          type="text"
-          placeholder="Contraseña"
-          value={newUser.password}
-          onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+          placeholder="Nombre del producto"
+          value={newProduct.name}
+          onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
           required
           className="bg-gray-700 text-white border border-gray-600 px-3 py-2 w-full rounded"
         />
         <DropdownCustom
-          options={roleOptions}
-          value={newUser.role}
-          onChange={(value) => setNewUser({ ...newUser, role: value })}
-          placeholder="Seleccionar rol"
+          options={[
+            { label: 'Comida', value: 'Comida' },
+            { label: 'Bebida', value: 'Bebida' },
+          ]}
+          value={newProduct.category}
+          onChange={(value) => setNewProduct({ ...newProduct, category: value })}
+          placeholder="Seleccionar categoría"
           required
+        />
+        <input
+          type="number"
+          step="0.01"
+          placeholder="Precio"
+          value={newProduct.price}
+          onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+          required
+          className="bg-gray-700 text-white border border-gray-600 px-3 py-2 w-full rounded"
         />
         {formMessage && (
           <p className={formMessageType === 'error' ? 'text-red-400' : 'text-green-400'}>
@@ -141,34 +133,39 @@ export default function UsersAdminPage() {
           </p>
         )}
         <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-          Crear Usuario
+          Crear Producto
         </button>
       </form>
 
-      {/* Editar Usuario */}
-      {editingUserId && (
-        <form onSubmit={handleUpdateUser} className="mb-6 space-y-4 p-4 rounded bg-gray-800">
-          <h3 className="text-lg font-semibold mb-2 text-white">Editar usuario</h3>
+      {/* Editar Producto */}
+      {editingProductId && (
+        <form onSubmit={handleUpdateProduct} className="mb-6 space-y-4 p-4 rounded bg-gray-800">
+          <h3 className="text-lg font-semibold mb-2 text-white">Editar producto</h3>
           <input
             type="text"
-            placeholder="Nombre de usuario"
-            value={editingUser.username}
-            onChange={(e) => setEditingUser({ ...editingUser, username: e.target.value })}
+            placeholder="Nombre del producto"
+            value={editingProduct.name}
+            onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
             required
             className="bg-gray-700 text-white border border-gray-600 px-3 py-2 w-full rounded"
           />
           <DropdownCustom
-            options={roleOptions}
-            value={editingUser.role}
-            onChange={(value) => setEditingUser({ ...editingUser, role: value })}
-            placeholder="Seleccionar rol"
+            options={[
+              { label: 'Comida', value: 'Comida' },
+              { label: 'Bebida', value: 'Bebida' },
+            ]}
+            value={editingProduct.category}
+            onChange={(value) => setEditingProduct({ ...editingProduct, category: value })}
+            placeholder="Seleccionar categoría"
             required
           />
           <input
-            type="text"
-            placeholder="Nueva contraseña (dejar vacío para no cambiar)"
-            value={editingUser.password}
-            onChange={(e) => setEditingUser({ ...editingUser, password: e.target.value })}
+            type="number"
+            step="0.01"
+            placeholder="Precio"
+            value={editingProduct.price}
+            onChange={(e) => setEditingProduct({ ...editingProduct, price: e.target.value })}
+            required
             className="bg-gray-700 text-white border border-gray-600 px-3 py-2 w-full rounded"
           />
           <div className="flex space-x-2">
@@ -183,32 +180,27 @@ export default function UsersAdminPage() {
               Cancelar
             </button>
           </div>
-          {formMessage && (
-            <p className={formMessageType === 'error' ? 'text-red-400' : 'text-green-400'}>
-              {formMessage}
-            </p>
-          )}
         </form>
       )}
 
-      {/* Lista de usuarios */}
-      <h2 className="text-xl font-semibold mb-2 text-white">Usuarios existentes:</h2>
+      {/* Lista de productos */}
+      <h2 className="text-xl font-semibold mb-2 text-white">Productos existentes:</h2>
       <ul className="space-y-2">
-        {users.map((user) => (
+        {products.map((product) => (
           <li
-            key={user._id}
+            key={product._id}
             className="flex justify-between items-center bg-gray-700 px-4 py-2 rounded text-white"
           >
-            <span>{user.username} - {user.role}</span>
+            <span>{product.name} - ${product.price.toFixed(2)} <small className="ml-2 text-gray-400">{product.category}</small></span>
             <div>
               <button
-                onClick={() => startEditingUser(user)}
+                onClick={() => startEditingProduct(product)}
                 className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 mr-2"
               >
                 Editar
               </button>
               <button
-                onClick={() => handleDeleteUser(user._id)}
+                onClick={() => handleDeleteProduct(product._id)}
                 className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
               >
                 Eliminar
