@@ -14,50 +14,54 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState('');
 
   const handleLogin = async (e) => {
-    e.preventDefault();
-    setErrorMessage('');
+  e.preventDefault();
+  setErrorMessage('');
 
-    try {
-      const res = await api.post('/users/login', {
-        username,
-        password
-      });
+  try {
+    const res = await api.post('/users/login', {
+      username,
+      password
+    });
 
-      const data = res.data;
+    console.log('✅ Login exitoso, respuesta:', res); // 👈
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('role', data.user.role);
+    const data = res.data;
+    console.log('📦 Datos recibidos:', data); // 👈
 
-      // Redirección según el rol
-      switch (data.user.role) {
-        case 'admin':
-          router.push('/admin');
-          break;
-        case 'waiter':
-          router.push('/mozo');
-          break;
-        case 'bar':
-          router.push('/barra');
-          break;
-        case 'kitchen':
-          router.push('/cocina');
-          break;
-        case 'cashier':
-          router.push('/caja');
-          break;
-        default:
-          router.push('/login'); // fallback
-      }
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('role', data.user.role);
 
-    } catch (err) {
-      if (err.response && err.response.data?.message) {
-        setErrorMessage(err.response.data.message);
-      } else {
-        setErrorMessage('Error de conexión. Intenta nuevamente.');
-      }
+    // Redirección según el rol
+    switch (data.user.role) {
+      case 'admin':
+        router.push('/admin');
+        break;
+      case 'waiter':
+        router.push('/mozo');
+        break;
+      case 'bar':
+        router.push('/barra');
+        break;
+      case 'kitchen':
+        router.push('/cocina');
+        break;
+      case 'cashier':
+        router.push('/caja');
+        break;
+      default:
+        router.push('/login'); // fallback
     }
-  };
 
+  } catch (err) {
+    console.error('❌ Error al hacer login:', err); // 👈 importante
+
+    if (err.response && err.response.data?.message) {
+      setErrorMessage(err.response.data.message);
+    } else {
+      setErrorMessage('Error de conexión. Intenta nuevamente.');
+    }
+  }
+};
   return (
     <div className="min-h-screen bg-gradient-to-br from-black to-gray-900 flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-[#111] text-white rounded-2xl shadow-lg p-8 space-y-6">
