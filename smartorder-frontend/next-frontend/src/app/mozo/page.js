@@ -4,7 +4,7 @@ import MozoMesaSelector from "./MozoMesaSelector";
 import MozoMenu from "./MozoMenu";
 import MozoPedidoActual from "./MozoPedidoActual";
 import MozoMesaOcupadaPanel from "./MozoMesaOcupadaPanel";
-import axios from "axios";
+import api from "@/utils/api";
 
 export default function MozoPage() {
   const [mesas, setMesas] = useState([]);
@@ -19,21 +19,16 @@ export default function MozoPage() {
   const [pedidoAbiertoId, setPedidoAbiertoId] = useState(null);
   const [pedidoMesaOcupada, setPedidoMesaOcupada] = useState(null);
   const [refreshMesasKey, setRefreshMesasKey] = useState(Date.now());
-
-  // Notificación de pedido listo
-  const [pedidoListoNotif, setPedidoListoNotif] = useState(null); // {mesa, pedidoId}
-  const lastNotifiedPedidosRef = useRef([]); // [{pedidoId, updatedAt}]
-
-  // --- AUDIO REF para el timbre ---
+  const [pedidoListoNotif, setPedidoListoNotif] = useState(null);
+  const lastNotifiedPedidosRef = useRef([]);
   const audioRef = useRef();
 
-  // SINCRONIZA DATOS AL INICIAR
   const cargarMesasYProductos = async () => {
     const token = localStorage.getItem("token");
-    const mesasResp = await axios.get("http://localhost:3001/api/mesas", {
+    const mesasResp = await api.get("/mesas", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    const productosResp = await axios.get("http://localhost:3001/api/products", {
+    const productosResp = await api.get("/products", {
       headers: { Authorization: `Bearer ${token}` }
     });
     setMesas(mesasResp.data);
@@ -51,25 +46,17 @@ export default function MozoPage() {
     }
   }, []);
 
-  // --- Polling para notificación de pedidos listos ---
   useEffect(() => {
     if (verificandoRol) return;
     const interval = setInterval(async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:3001/api/orders", {
+        const res = await api.get("/orders", {
           headers: { Authorization: `Bearer ${token}` }
         });
-        const pedidosListos = res.data.filter(
-          o => o.status === "listo"
-        );
-        // Buscar si hay algún "listo" NO notificado con este updatedAt
+        const pedidosListos = res.data.filter(o => o.status === "listo");
         const nuevosListos = pedidosListos.filter(o =>
-          !lastNotifiedPedidosRef.current.some(
-            n =>
-              n.pedidoId === o._id &&
-              n.updatedAt === o.updatedAt
-          )
+          !lastNotifiedPedidosRef.current.some(n => n.pedidoId === o._id && n.updatedAt === o.updatedAt)
         );
         if (nuevosListos.length > 0) {
           setPedidoListoNotif({
@@ -81,14 +68,11 @@ export default function MozoPage() {
             updatedAt: nuevosListos[0].updatedAt
           });
         }
-      } catch (err) {
-        // ignorar error
-      }
+      } catch {}
     }, 8000);
     return () => clearInterval(interval);
   }, [verificandoRol]);
 
-  // Toast desaparece a los 4.5s + sonido
   useEffect(() => {
     if (pedidoListoNotif) {
       if (audioRef.current) {
@@ -100,7 +84,6 @@ export default function MozoPage() {
     }
   }, [pedidoListoNotif]);
 
-  // RESET GENERAL: siempre deja todo limpio y actualiza mesas (después de acciones)
   const refrescarMesasYReset = async () => {
     await cargarMesasYProductos();
     setStep(0);
@@ -113,38 +96,29 @@ export default function MozoPage() {
     setRefreshMesasKey(Date.now());
   };
 
-  const getCantidad = (id) => pedido.find((p) => p.productoId === id)?.cantidad || 0;
+  const getCantidad = id => pedido.find(p => p.productoId === id)?.cantidad || 0;
 
   const setCantidad = (id, cantidad) => {
-    setPedido((prev) => {
-      if (cantidad < 1) return prev.filter((p) => p.productoId !== id);
-      if (prev.find((p) => p.productoId === id)) {
-        return prev.map((p) => (p.productoId === id ? { ...p, cantidad } : p));
+    setPedido(prev => {
+      if (cantidad < 1) return prev.filter(p => p.productoId !== id);
+      if (prev.find(p => p.productoId === id)) {
+        return prev.map(p => (p.productoId === id ? { ...p, cantidad } : p));
       } else {
         return [...prev, { productoId: id, cantidad }];
       }
     });
   };
 
-  const quitarProducto = (id) => setPedido((prev) => prev.filter((p) => p.productoId !== id));
+  const quitarProducto = id => setPedido(prev => prev.filter(p => p.productoId !== id));
 
-  // ----- FLUJO AL SELECCIONAR UNA MESA -----
   const handleMesaNext = async () => {
     if (!mesaSeleccionada) return;
     const token = localStorage.getItem("token");
-    const res = await axios.get("http://localhost:3001/api/orders?mesa=" + mesaSeleccionada, {
+    const res = await api.get(`/orders?mesa=${mesaSeleccionada}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
-    const abiertos = res.data.filter(
-      o =>
-        [
-          "pendiente",
-          "en preparación",
-          "listo",
-          "en mesa",
-          "a cobrar",
-          "pagado"
-        ].includes(o.status)
+    const abiertos = res.data.filter(o =>
+      ["pendiente", "en preparación", "listo", "en mesa", "a cobrar", "pagado"].includes(o.status)
     );
     if (abiertos.length > 0) {
       setEsEdicion(true);
@@ -155,22 +129,19 @@ export default function MozoPage() {
       setEsEdicion(false);
       setPedidoAbiertoId(null);
       setPedidoMesaOcupada(null);
-      setPedido([]); // reset
-      setNota("");   // reset
+      setPedido([]);
+      setNota("");
       setStep(1);
     }
   };
 
-  // Handler para finalizar/cobrar
   const handleFinalizarCobrar = async () => {
     if (!pedidoAbiertoId) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.patch(
-        `http://localhost:3001/api/orders/${pedidoAbiertoId}/status`,
-        { status: "a cobrar" },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.patch(`/orders/${pedidoAbiertoId}/status`, { status: "a cobrar" }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       alert("Pedido enviado a caja para cobrar");
       await refrescarMesasYReset();
     } catch (error) {
@@ -179,21 +150,15 @@ export default function MozoPage() {
     }
   };
 
-  // Handler para editar pedido (agregar productos)
-  const handleEditarPedido = () => {
-    setStep(1); // Va al menú para agregar productos
-  };
+  const handleEditarPedido = () => setStep(1);
 
-  // Handler para marcar pedido en mesa
   const handlePedidoEnMesa = async () => {
     if (!pedidoAbiertoId) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.patch(
-        `http://localhost:3001/api/orders/${pedidoAbiertoId}/status`,
-        { status: "en mesa" },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.patch(`/orders/${pedidoAbiertoId}/status`, { status: "en mesa" }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       alert("Marcado como entregado en mesa");
       await refrescarMesasYReset();
     } catch (error) {
@@ -202,16 +167,13 @@ export default function MozoPage() {
     }
   };
 
-  // Handler para liberar mesa (solo si pedido.status === "pagado")
   const handleLiberarMesa = async () => {
     if (!mesaSeleccionada) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.patch(
-        `http://localhost:3001/api/mesas/${mesaSeleccionada}/liberar`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.patch(`/mesas/${mesaSeleccionada}/liberar`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       alert("Mesa liberada correctamente");
       await refrescarMesasYReset();
     } catch (error) {
@@ -220,78 +182,47 @@ export default function MozoPage() {
     }
   };
 
-  // Función para enviar el pedido o agregar productos (igual que antes)
   const onSend = async () => {
     const token = localStorage.getItem("token");
-    if (!mesaSeleccionada) {
-      alert("Debe seleccionar una mesa antes de enviar el pedido.");
-      return;
-    }
-    if (pedido.length === 0) {
-      alert("No hay productos en el pedido para enviar.");
+    if (!mesaSeleccionada || pedido.length === 0) {
+      alert("Debe seleccionar una mesa y agregar productos.");
       return;
     }
 
-    const items = pedido.map((p) => {
+    const items = pedido.map(p => {
       const producto = productos.find(pr => pr._id === p.productoId);
       if (!producto) {
         alert(`Producto no encontrado: ${p.productoId}`);
         throw new Error(`Producto no encontrado: ${p.productoId}`);
       }
       const categoria = (producto.category || "").toString().trim().toLowerCase();
-      let sector = "cocina"; // default
-      if (categoria === "bebida" || categoria === "bebidas") sector = "barra";
-      return {
-        product: p.productoId,
-        quantity: p.cantidad,
-        sector
-      };
+      const sector = categoria === "bebida" || categoria === "bebidas" ? "barra" : "cocina";
+      return { product: p.productoId, quantity: p.cantidad, sector };
     });
 
-    if (items.some(i => !i.sector)) {
-      alert("Algún producto no tiene sector. Revisá las categorías en el panel de productos.");
-      return;
-    }
-
-    if (esEdicion && pedidoAbiertoId) {
-      try {
-        await axios.patch(
-          `http://localhost:3001/api/orders/${pedidoAbiertoId}/add-products`,
-          { nuevosItems: items, notes: nota },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        // Si el pedido estaba "en mesa", ponelo en "en preparación"
-        if (pedidoMesaOcupada && pedidoMesaOcupada.status === "en mesa") {
-          await axios.patch(
-            `http://localhost:3001/api/orders/${pedidoAbiertoId}/status`,
-            { status: "en preparación" },
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
+    try {
+      if (esEdicion && pedidoAbiertoId) {
+        await api.patch(`/orders/${pedidoAbiertoId}/add-products`, { nuevosItems: items, notes: nota }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (pedidoMesaOcupada?.status === "en mesa") {
+          await api.patch(`/orders/${pedidoAbiertoId}/status`, { status: "en preparación" }, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
         }
         alert("Productos agregados al pedido abierto");
-        setPedido([]);
-        setNota("");
-        await refrescarMesasYReset();
-      } catch (error) {
-        console.error("Error al agregar productos", error);
-        alert("Error al agregar productos");
-      }
-    } else {
-      axios.post(
-        "http://localhost:3001/api/orders",
-        { items, notes: nota, mesa: mesaSeleccionada },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-        .then(() => {
-          alert("Pedido enviado correctamente");
-          setPedido([]);
-          setNota("");
-          refrescarMesasYReset();
-        })
-        .catch((error) => {
-          console.error("Error al enviar pedido", error);
-          alert("Error al enviar pedido");
+      } else {
+        await api.post("/orders", { items, notes: nota, mesa: mesaSeleccionada }, {
+          headers: { Authorization: `Bearer ${token}` }
         });
+        alert("Pedido enviado correctamente");
+      }
+      setPedido([]);
+      setNota("");
+      refrescarMesasYReset();
+    } catch (error) {
+      console.error("Error al enviar pedido", error);
+      alert("Error al enviar pedido");
     }
   };
 
