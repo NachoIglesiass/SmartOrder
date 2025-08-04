@@ -22,6 +22,7 @@ export default function LoginPage() {
       const data = res.data;
 
       console.log('✅ Login exitoso:', data);
+      console.log('🧠 Rol del usuario:', data.user?.role); 
 
       // Guardar token y rol
       localStorage.setItem('token', data.token);
